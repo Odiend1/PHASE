@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PHASE AI</title>
+  <style>
+
+    html, body{
+      height: 100%;
+      width: 100%;
+      background-color: #0f0f0f;
+    }
+
+    h1, h2, h3, h4, h5, h6, label, p{
+      color: #ffffff;
+    }
+
+    .ai-response {
+        background-color: #06dc22;
+        margin: 5%;
+        border-radius: 20px;
+        border-top-left-radius: 2px;
+        padding: 2%;
+        color: #ffffff;
+        width:30%;
+        margin-right:50%;
+        font-family: monospace;
+    }
+
+    .user-response {
+        background-color: #0979ff;
+        margin: 5%;
+        border-radius: 20px;
+        border-top-right-radius: 2px;
+        padding: 2%;
+        color: #ffffff;
+        width:30%;
+        margin-left:40%;
+        margin-right:12%;
+        font-family: monospace;
+    }
+
+    #corner-decal{
+      -webkit-transform: scaleX(-1);
+      transform: scaleX(-1);
+      -webkit-transform: scaleY(-1);
+      transform: scaleY(-1);
+      position: absolute;
+      bottom:0;
+      right:0;
+    }
+
+    #user-message{
+      width: 70%;
+      height: 30px;
+      font-size: 20px;
+      border-radius: 10px;
+    }
+
+    #send{
+      height: 30px;
+      font-size: 20px;
+      border-radius: 2px;
+    }
+  </style>
+  <title>Document</title>
+</head>
+<body>
+  <div style="text-align: center;; width: 200px;; float: right; position: fixed; right: 0;">
+    <input id="heart-rate-range" type="range" min="0" max="220" oninput="updateHeartRate()"><br>
+    <label id="heart-rate-label">❤️ 80 bpm</label>
+    <br>
+    <input id="blood-pressure-range" type="range" min="30" max="120" value="80" oninput="updateBloodPressure()"><br>
+    <label id="blood-pressure-label">120/80 mmHg</label>
+    <br>
+    <input id="spo2-range" type="range" min="50" max="100" value="100" oninput="updateSpO2()"><br>
+    <label id="spo2-label">SpO2: 100%</label>
+    <br><br>
+    <div style="text-align: left; padding-left: 100px;">
+      <!--
+      <p>Voice</p>
+      <input type="radio" id="voice-alloy" name="voice" value="Alloy" checked /><label for="voice-alloy">Alloy</label>
+      <br>
+      <input type="radio" id="voice-ash" name="voice" value="Ash" /><label for="voice-ash">Ash</label>
+      <br>
+      <input type="radio" id="voice-coral" name="voice" value="Coral" /><label for="voice-coral">Coral</label>
+      <br>
+      <input type="radio" id="voice-echo" name="voice" value="Echo" /><label for="voice-echo">Echo</label>
+      <br>
+      <input type="radio" id="voice-fablo" name="voice" value="Fablo" /><label for="voice-fablo">Fablo</label>
+      <br>
+      <input type="radio" id="voice-onyx" name="voice" value="Onyx" /><label for="voice-onyx">Onyx</label>
+      <br>
+      <input type="radio" id="voice-nova" name="voice" value="Nova" /><label for="voice-nova">Nova</label>
+      <br>
+      <input type="radio" id="voice-sage" name="voice" value="Sage" /><label for="voice-sage">Sage</label>
+      <br>
+      <input type="radio" id="voice-shimmer" name="voice" value="Shimmer" /><label for="voice-shimmer">Shimmer</label>
+    -->
+    </div>
+  </div>
+  <div>
+  <h1 style="font-family: monospace;">P.H.A.S.E.</h1>
+  <h4 style="font-family: monospace;">Personal Health Assistant for Space Exploration</h4>
+  </div>
+  <div id="user-chat">
+    <div id="messages-container">
+    </div>
+  <br><br><br>
+  <p id="ai-response"></p>
+  <div style="width: 100%; text-align: center;">
+  <input id="user-message"><button id="send">➤</button>
+  </div>
+  <br>
+  </div>
+  <audio id="ai-speech"></audio>
+  <script>
+    const date = new Date();
+    var threadID = 0;
+    const aiSpeechAudio = document.getElementById("ai-speech");
+    function amplifyMedia(mediaElem, multiplier) {
+      var context = new (window.AudioContext || window.webkitAudioContext),
+          result = {
+            context: context,
+            source: context.createMediaElementSource(mediaElem),
+            gain: context.createGain(),
+            media: mediaElem,
+            amplify: function(multiplier) { result.gain.gain.value = multiplier; },
+            getAmpLevel: function() { return result.gain.gain.value; }
+          };
+      result.source.connect(result.gain);
+      result.gain.connect(context.destination);
+      result.amplify(multiplier);
+      return result;
+    }
+    amplifyMedia(aiSpeechAudio, 2);
+    function sendUserMessage(message){
+      var customerServiceMessageInput = document.getElementById("user-message");
+      var messageP = document.createElement('p');
+      document.getElementById('messages-container').appendChild(messageP);
+      messageP.classList.add("user-response");
+      messageP.innerHTML = message;
+      window.scrollTo(0, document.body.scrollHeight);
+      if(message.trim() === ''){
+        messageP.style.padding = "0.1%";
+        messageP.style.marginTop = "0.5%";
+        messageP.style.marginBottom = "0.5%";
+      }
+      const userInput = encodeURIComponent("USER MESSAGE: " + message);
+      customerServiceMessageInput.value = "";
+      var voiceRadios = document.getElementsByName("voice");
+      let selectedVoice = "alloy";
+      for (let i = 0; i < voiceRadios.length; i++){
+        if(voiceRadios[i].checked) selectedVoice = voiceRadios[i].value.toLowerCase();
+      }
+      fetch(`/api/user-message?input=${userInput}&threadID=${threadID}&voice=${selectedVoice}`, {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json'
+          }
+      })
+      .then(response => response.json())
+      .then(data => {
+          var responseP = document.createElement('p');
+          document.getElementById('messages-container').appendChild(responseP);
+          responseP.classList.add("ai-response");
+          window.scrollTo(0, document.body.scrollHeight);
+          if(data.response == undefined || JSON.parse(data.response).message.trim() === ''){
+            responseP.style.padding = "0.1%";
+            responseP.style.marginTop = "0.5%";
+            responseP.style.marginBottom = "0.5%";
+            return;
+          }
+          responseP.innerHTML = JSON.parse(data.response).message.replaceAll("\n", "<br>")//.split("[MISSION_CONTROL]")[0];
+          /*if(JSON.parse(data.response).message.includes("[MISSION_CONTROL]")){
+            var mcResponseP = document.createElement('p');
+            document.getElementById('messages-container').appendChild(mcResponseP);
+            mcResponseP.classList.add("ai-response");
+            mcResponseP.style.backgroundColor = "#ffff27";
+            mcResponseP.innerHTML = JSON.parse(data.response).message.replaceAll("\n", "<br>").split("[MISSION_CONTROL]")[1]
+            window.scrollTo(0, document.body.scrollHeight);
+          }*/
+          threadID = JSON.parse(data.response).id;
+          /*var msg = new SpeechSynthesisUtterance();
+          msg.text = JSON.parse(data.response).message.replaceAll("*", "");
+          window.speechSynthesis.speak(msg);*/
+          speechPath = JSON.parse(data.response).speechPath;
+          function playSpeech(){
+            var xhr = new XMLHttpRequest();
+            xhr.open('HEAD', speechPath, true);
+            xhr.onreadystatechange = function() {
+              if (xhr.readyState === 4) {
+                if (xhr.status === 200) {
+                  aiSpeechAudio.src=speechPath;
+                  aiSpeechAudio.play();
+                } else {
+                  setTimeout(playSpeech,100);
+                }
+              }
+            };
+            xhr.send();
+          }
+          playSpeech();
+
+      })
+      .catch(error => {
+          console.error('Error fetching GPT response:', error);
+      });
+    }
+    document.getElementById("send").onclick = function(){
+      var customerServiceMessageInput = document.getElementById("user-message");
+      aiSpeechAudio.pause();
+      aiSpeechAudio.currentTime = 0;
+      sendUserMessage(customerServiceMessageInput.value);
+    }
+
+    document.getElementById("heart-rate-range").value = 80;
+    function updateHeartRate(){
+      document.getElementById("heart-rate-label").textContent = "❤️ " + document.getElementById("heart-rate-range").value +" bpm";
+    }
+    function updateBloodPressure(){
+      document.getElementById("blood-pressure-label").textContent = Math.ceil((document.getElementById("blood-pressure-range").value)*1.5) + "/" + document.getElementById("blood-pressure-range").value +" mmHg";
+    }
+    function updateSpO2(){
+      document.getElementById("spo2-label").textContent = "SpO2: " + document.getElementById("spo2-range").value +"%";
+    }
+    function sendVitals(){
+      let heartRate = document.getElementById("heart-rate-range").value;
+      let bloodPressure = Math.ceil(parseInt(document.getElementById("blood-pressure-range").value)*1.5) + "/" + document.getElementById("blood-pressure-range").value + " mmHg";
+      let spO2 = document.getElementById("spo2-range").value + "%";
+      let status = `Time: ${date}; Heart Rate: ${heartRate}; Blood Pressure: ${bloodPressure}; SpO2: ${spO2}`;
+      var voiceRadios = document.getElementsByName("voice");
+      let selectedVoice = "alloy";
+      for (let i = 0; i < voiceRadios.length; i++){
+        if(voiceRadios[i].checked) selectedVoice = voiceRadios[i].value.toLowerCase();
+      }
+      console.log("Sending " + status)
+      fetch(`/api/system-message?input=${status}&threadID=${threadID}&voice=${selectedVoice}`, {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json'
+          }
+      })
+      .then(response => response.json())
+      .then(data => {
+        var responseP = document.createElement('p');
+        document.getElementById('messages-container').appendChild(responseP);
+        responseP.classList.add("ai-response");
+        window.scrollTo(0, document.body.scrollHeight);
+        if(data.response == undefined || JSON.parse(data.response).message.trim() === ''){
+          responseP.style.padding = "0.1%";
+          responseP.style.marginTop = "0.5%";
+          responseP.style.marginBottom = "0.5%";
+          return;
+        }
+        responseP.innerHTML = JSON.parse(data.response).message.replaceAll("\n", "<br>")//.split("[MISSION_CONTROL]")[0];
+          // if(JSON.parse(data.response).message.includes("[MISSION_CONTROL]")){
+          //   var mcResponseP = document.createElement('p');
+          //   document.getElementById('messages-container').appendChild(mcResponseP);
+          //   mcResponseP.classList.add("ai-response");
+          //   mcResponseP.style.backgroundColor = "#ffff27";
+          //   mcResponseP.innerHTML = JSON.parse(data.response).message.replaceAll("\n", "<br>").split("[MISSION_CONTROL]")[1]
+          //   window.scrollTo(0, document.body.scrollHeight);
+          // }
+        threadID = JSON.parse(data.response).id;
+        /*var msg = new SpeechSynthesisUtterance();
+        msg.text = JSON.parse(data.response).message.replaceAll("*", "");
+        window.speechSynthesis.speak(msg);*/
+        speechPath = JSON.parse(data.response).speechPath;
+        function playSpeech(){
+          var xhr = new XMLHttpRequest();
+          xhr.open('HEAD', speechPath, true);
+          xhr.onreadystatechange = function() {
+            if (xhr.readyState === 4) {
+              if (xhr.status === 200) {
+                aiSpeechAudio.src=speechPath;
+                aiSpeechAudio.play();
+              } else {
+                setTimeout(playSpeech,100);
+              }
+            }
+          };
+          xhr.send();
+        }
+        playSpeech();
+
+      })
+      .catch(error => {
+          console.error('Error fetching GPT response:', error);
+      });
+    }
+    document.getElementById("heart-rate-range").addEventListener("change", sendVitals);
+    document.getElementById("blood-pressure-range").addEventListener("change", sendVitals);
+    document.getElementById("spo2-range").addEventListener("change", sendVitals);
+  </script>
+  <audio id="ding-audio" src="ding.mp3" volume="0.6">Sound Effect from <a href="https://pixabay.com/sound-effects/?utm_source=link-attribution&utm_medium=referral&utm_campaign=music&utm_content=89718">Pixabay</a></audio>
+  <script>
+    var userMessageBox = document.getElementById('user-message');
+    // Check for browser compatibility
+if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
+
+// Create a new SpeechRecognition object
+const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+
+// Set properties
+recognition.continuous = true; // Keep listening until stopped
+recognition.interimResults = true; // Get interim results as the user speaks
+recognition.lang = 'en-US'; // Set the language
+
+// Start recognition
+recognition.start();
+
+var transcripts = [];
+var inProgressSentence = "";
+var currentIndex = 0;
+var resultIndex = 0;
+var silenceTime = 0;
+// function silenceTimeIntervalFunction(){
+//   if(silenceTime > 5 && silenceTime <= 5.1){
+//     console.log("I'M STILL STANDING")
+//     console.log(silenceTime);
+//     console.log("FINAL: " + transcripts[transcripts.length - 1]);
+//     currentIndex++;
+//   }
+//   silenceTime += 0.1;
+// }
+// var silenceTimeInterval = setInterval(silenceTimeIntervalFunction, 100);
+// Event handlers
+recognition.onresult = (event) => {
+  silenceTime = 0;
+  const transcript = event.results[event.results.length - 1][0].transcript;
+  if(event.results.length - 1 > currentIndex + 1 || resultIndex > event.results.length - 1){
+    transcripts[currentIndex] = event.results[resultIndex-1][0].transcript;
+    console.log("FINAL: " + transcripts[currentIndex]);
+    currentIndex++;
+  }
+  resultIndex = event.results.length - 1;
+  transcripts[event.results.length - 1] = transcript;
+  inProgressSentence = transcript;
+  console.log(event.results.length - 1 + " " + transcript); // Log the transcribed text
+  // Do something with the transcript, e.g., update a text box
+};
+
+recognition.onerror = (event) => {
+  console.error('Speech recognition error:', event.error);
+  const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+
+// Set properties
+recognition.continuous = true; // Keep listening until stopped
+recognition.interimResults = true; // Get interim results as the user speaks
+recognition.lang = 'en-US'; // Set the language
+
+// Start recognition
+recognition.start();
+};
+
+} else {
+console.error('Speech recognition not supported in this browser.');
+}
+
+  var startedRecording = false;
+  var startIndex = 0;
+  var endIndex = 0;
+  onkeydown = function(e) {
+    if(e.key === ' ' && document.activeElement != userMessageBox){
+      if(!startedRecording){
+        aiSpeechAudio.pause();
+        aiSpeechAudio.currentTime = 0;
+        document.getElementById("ding-audio").play()
+        startIndex = currentIndex;
+        startedRecording = true;
+      }
+      else{
+        setTimeout(function(){
+          endIndex = currentIndex;
+          startedRecording = false;
+          var fullMessage = "";
+          for(let i = startIndex; i < endIndex; i++){
+            if(transcripts[i].trim() != "" && (i + 1 < endIndex) ? !transcripts[i+1].includes(transcripts[i]) : true) fullMessage += transcripts[i].slice(0,1).toUpperCase() + transcripts[i].slice(1) + ".";
+          }
+          if(inProgressSentence !== transcripts[currentIndex-1]) {
+            currentIndex++;
+            fullMessage += inProgressSentence;
+          }
+          console.log("USER MESSAGE: " + fullMessage)
+          sendUserMessage(fullMessage);
+        }, 1000)
+      }
+    }
+  }
+  </script>
+</body>
+</html>
